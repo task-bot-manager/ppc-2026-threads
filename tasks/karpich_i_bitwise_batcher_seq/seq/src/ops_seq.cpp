@@ -1,12 +1,88 @@
 #include "karpich_i_bitwise_batcher_seq/seq/include/ops_seq.hpp"
 
-#include <numeric>
+#include <algorithm>
+#include <random>
+#include <utility>
 #include <vector>
 
-#include "karpich_i_bitwise_batcher_seq/common/include/common.hpp"
-#include "util/include/util.hpp"
-
 namespace karpich_i_bitwise_batcher_seq {
+
+namespace {
+
+void RadixSortPositive(std::vector<int> &arr) {
+  int n = static_cast<int>(arr.size());
+  if (n <= 1) {
+    return;
+  }
+
+  int max_val = *std::max_element(arr.begin(), arr.end());
+  if (max_val == 0) {
+    return;
+  }
+
+  std::vector<int> buffer(n);
+
+  for (int shift = 0; shift < 32 && (max_val >> shift) > 0; shift += 8) {
+    std::vector<int> count(256, 0);
+    for (int i = 0; i < n; i++) {
+      count[(arr[i] >> shift) & 0xFF]++;
+    }
+    for (int i = 1; i < 256; i++) {
+      count[i] += count[i - 1];
+    }
+    for (int i = n - 1; i >= 0; i--) {
+      buffer[--count[(arr[i] >> shift) & 0xFF]] = arr[i];
+    }
+    arr = buffer;
+  }
+}
+
+void RadixSort(std::vector<int> &arr) {
+  int n = static_cast<int>(arr.size());
+  if (n <= 1) {
+    return;
+  }
+
+  std::vector<int> negative;
+  std::vector<int> positive;
+  for (int i = 0; i < n; i++) {
+    if (arr[i] < 0) {
+      negative.push_back(-arr[i]);
+    } else {
+      positive.push_back(arr[i]);
+    }
+  }
+
+  RadixSortPositive(positive);
+  RadixSortPositive(negative);
+
+  int idx = 0;
+  for (int i = static_cast<int>(negative.size()) - 1; i >= 0; i--) {
+    arr[idx++] = -negative[i];
+  }
+  for (int i = 0; i < static_cast<int>(positive.size()); i++) {
+    arr[idx++] = positive[i];
+  }
+}
+
+void BatcherMerge(std::vector<int> &arr, int lo, int hi, int r) {
+  int step = r * 2;
+  if (step < hi - lo) {
+    BatcherMerge(arr, lo, hi, step);
+    BatcherMerge(arr, lo + r, hi, step);
+    for (int i = lo + r; i + r <= hi; i += step) {
+      if (arr[i] > arr[i + r]) {
+        std::swap(arr[i], arr[i + r]);
+      }
+    }
+  } else if (lo + r <= hi) {
+    if (arr[lo] > arr[lo + r]) {
+      std::swap(arr[lo], arr[lo + r]);
+    }
+  }
+}
+
+}  // namespace
 
 KarpichIBitwiseBatcherSEQ::KarpichIBitwiseBatcherSEQ(const InType &in) {
   SetTypeOfTask(GetStaticTypeOfTask());
@@ -15,46 +91,58 @@ KarpichIBitwiseBatcherSEQ::KarpichIBitwiseBatcherSEQ(const InType &in) {
 }
 
 bool KarpichIBitwiseBatcherSEQ::ValidationImpl() {
-  return (GetInput() > 0) && (GetOutput() == 0);
+  return GetInput() > 0;
 }
 
 bool KarpichIBitwiseBatcherSEQ::PreProcessingImpl() {
-  GetOutput() = 2 * GetInput();
-  return GetOutput() > 0;
+  int n = GetInput();
+  data_.resize(n);
+  std::mt19937 gen(static_cast<unsigned int>(n));
+  std::uniform_int_distribution<int> dist(-1000, 1000);
+  for (int i = 0; i < n; i++) {
+    data_[i] = dist(gen);
+  }
+  return true;
 }
 
 bool KarpichIBitwiseBatcherSEQ::RunImpl() {
-  if (GetInput() == 0) {
-    return false;
+  int n = static_cast<int>(data_.size());
+  if (n <= 1) {
+    return true;
   }
 
-  for (InType i = 0; i < GetInput(); i++) {
-    for (InType j = 0; j < GetInput(); j++) {
-      for (InType k = 0; k < GetInput(); k++) {
-        std::vector<InType> tmp(i + j + k, 1);
-        GetOutput() += std::accumulate(tmp.begin(), tmp.end(), 0);
-        GetOutput() -= i + j + k;
-      }
-    }
+  int padded = 1;
+  while (padded < n) {
+    padded *= 2;
   }
 
-  const int num_threads = ppc::util::GetNumThreads();
-  GetOutput() *= num_threads;
+  int max_elem = *std::max_element(data_.begin(), data_.end());
+  data_.resize(padded, max_elem);
 
-  int counter = 0;
-  for (int i = 0; i < num_threads; i++) {
-    counter++;
-  }
+  int half = padded / 2;
+  std::vector<int> left(data_.begin(), data_.begin() + half);
+  std::vector<int> right(data_.begin() + half, data_.end());
 
-  if (counter != 0) {
-    GetOutput() /= counter;
-  }
-  return GetOutput() > 0;
+  RadixSort(left);
+  RadixSort(right);
+
+  std::copy(left.begin(), left.end(), data_.begin());
+  std::copy(right.begin(), right.end(), data_.begin() + half);
+
+  BatcherMerge(data_, 0, padded - 1, 1);
+
+  data_.resize(n);
+  return true;
 }
 
 bool KarpichIBitwiseBatcherSEQ::PostProcessingImpl() {
-  GetOutput() -= GetInput();
-  return GetOutput() > 0;
+  for (int i = 1; i < static_cast<int>(data_.size()); i++) {
+    if (data_[i] < data_[i - 1]) {
+      return false;
+    }
+  }
+  GetOutput() = GetInput();
+  return true;
 }
 
 }  // namespace karpich_i_bitwise_batcher_seq

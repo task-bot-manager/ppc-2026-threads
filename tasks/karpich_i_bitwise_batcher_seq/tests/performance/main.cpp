@@ -7,7 +7,7 @@
 namespace karpich_i_bitwise_batcher_seq {
 
 class KarpichIBitwiseBatcherPerfTestsThreads : public ppc::util::BaseRunPerfTests<InType, OutType> {
-  const int kCount_ = 200;
+  const int kCount_ = 1500000;
   InType input_data_{};
 
   void SetUp() override {

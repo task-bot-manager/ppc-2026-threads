@@ -1,5 +1,7 @@
 #pragma once
 
+#include <vector>
+
 #include "karpich_i_bitwise_batcher_seq/common/include/common.hpp"
 #include "task/include/task.hpp"
 
@@ -17,6 +19,8 @@ class KarpichIBitwiseBatcherSEQ : public BaseTask {
   bool PreProcessingImpl() override;
   bool RunImpl() override;
   bool PostProcessingImpl() override;
+
+  std::vector<int> data_;
 };
 
 }  // namespace karpich_i_bitwise_batcher_seq
