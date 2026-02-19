@@ -5,6 +5,8 @@
 #include <utility>
 #include <vector>
 
+#include "karpich_i_bitwise_batcher_seq/common/include/common.hpp"
+
 namespace karpich_i_bitwise_batcher_seq {
 
 namespace {
@@ -15,7 +17,7 @@ void RadixSortPositive(std::vector<int> &arr) {
     return;
   }
 
-  int max_val = *std::max_element(arr.begin(), arr.end());
+  int max_val = *std::ranges::max_element(arr);
   if (max_val == 0) {
     return;
   }
@@ -60,24 +62,47 @@ void RadixSort(std::vector<int> &arr) {
   for (int i = static_cast<int>(negative.size()) - 1; i >= 0; i--) {
     arr[idx++] = -negative[i];
   }
-  for (int i = 0; i < static_cast<int>(positive.size()); i++) {
-    arr[idx++] = positive[i];
+  for (int x : positive) {
+    arr[idx++] = x;
   }
 }
 
-void BatcherMerge(std::vector<int> &arr, int lo, int hi, int r) {
-  int step = r * 2;
-  if (step < hi - lo) {
-    BatcherMerge(arr, lo, hi, step);
-    BatcherMerge(arr, lo + r, hi, step);
-    for (int i = lo + r; i + r <= hi; i += step) {
-      if (arr[i] > arr[i + r]) {
-        std::swap(arr[i], arr[i + r]);
+void BatcherMerge(std::vector<int> &arr, int lo, int hi) {
+  struct MergeTask {
+    int lo;
+    int hi;
+    int r;
+  };
+
+  std::vector<std::vector<std::pair<int, int>>> levels;
+  std::vector<MergeTask> current = {{lo, hi, 1}};
+
+  while (!current.empty()) {
+    std::vector<MergeTask> next;
+    std::vector<std::pair<int, int>> comps;
+
+    for (const auto &[tlo, thi, tr] : current) {
+      int step = tr * 2;
+      if (step < thi - tlo) {
+        next.push_back({tlo, thi, step});
+        next.push_back({tlo + tr, thi, step});
+        for (int i = tlo + tr; i + tr <= thi; i += step) {
+          comps.emplace_back(i, i + tr);
+        }
+      } else if (tlo + tr <= thi) {
+        comps.emplace_back(tlo, tlo + tr);
       }
     }
-  } else if (lo + r <= hi) {
-    if (arr[lo] > arr[lo + r]) {
-      std::swap(arr[lo], arr[lo + r]);
+
+    levels.push_back(std::move(comps));
+    current = std::move(next);
+  }
+
+  for (int l = static_cast<int>(levels.size()) - 1; l >= 0; l--) {
+    for (const auto &[a, b] : levels[l]) {
+      if (arr[a] > arr[b]) {
+        std::swap(arr[a], arr[b]);
+      }
     }
   }
 }
@@ -116,7 +141,7 @@ bool KarpichIBitwiseBatcherSEQ::RunImpl() {
     padded *= 2;
   }
 
-  int max_elem = *std::max_element(data_.begin(), data_.end());
+  int max_elem = *std::ranges::max_element(data_);
   data_.resize(padded, max_elem);
 
   int half = padded / 2;
@@ -126,17 +151,17 @@ bool KarpichIBitwiseBatcherSEQ::RunImpl() {
   RadixSort(left);
   RadixSort(right);
 
-  std::copy(left.begin(), left.end(), data_.begin());
-  std::copy(right.begin(), right.end(), data_.begin() + half);
+  std::ranges::copy(left, data_.begin());
+  std::ranges::copy(right, data_.begin() + half);
 
-  BatcherMerge(data_, 0, padded - 1, 1);
+  BatcherMerge(data_, 0, padded - 1);
 
   data_.resize(n);
   return true;
 }
 
 bool KarpichIBitwiseBatcherSEQ::PostProcessingImpl() {
-  for (int i = 1; i < static_cast<int>(data_.size()); i++) {
+  for (int i = 1; std::cmp_less(i, data_.size()); i++) {
     if (data_[i] < data_[i - 1]) {
       return false;
     }
