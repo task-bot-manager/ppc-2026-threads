@@ -67,13 +67,13 @@ void RadixSort(std::vector<int> &arr) {
   }
 }
 
-void BatcherMerge(std::vector<int> &arr, int lo, int hi) {
-  struct MergeTask {
-    int lo;
-    int hi;
-    int r;
-  };
+struct MergeTask {
+  int lo;
+  int hi;
+  int r;
+};
 
+std::vector<std::vector<std::pair<int, int>>> BuildMergeNetwork(int lo, int hi) {
   std::vector<std::vector<std::pair<int, int>>> levels;
   std::vector<MergeTask> current = {{lo, hi, 1}};
 
@@ -98,13 +98,22 @@ void BatcherMerge(std::vector<int> &arr, int lo, int hi) {
     current = std::move(next);
   }
 
-  for (int l = static_cast<int>(levels.size()) - 1; l >= 0; l--) {
-    for (const auto &[a, b] : levels[l]) {
+  return levels;
+}
+
+void ApplyComparatorNetwork(std::vector<int> &arr, const std::vector<std::vector<std::pair<int, int>>> &levels) {
+  for (int lvl = static_cast<int>(levels.size()) - 1; lvl >= 0; lvl--) {
+    for (const auto &[a, b] : levels[lvl]) {
       if (arr[a] > arr[b]) {
         std::swap(arr[a], arr[b]);
       }
     }
   }
+}
+
+void BatcherMerge(std::vector<int> &arr, int lo, int hi) {
+  auto levels = BuildMergeNetwork(lo, hi);
+  ApplyComparatorNetwork(arr, levels);
 }
 
 }  // namespace
