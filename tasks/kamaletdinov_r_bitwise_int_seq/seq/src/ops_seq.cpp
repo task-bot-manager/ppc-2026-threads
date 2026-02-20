@@ -1,7 +1,11 @@
 #include "kamaletdinov_r_bitwise_int_seq/seq/include/ops_seq.hpp"
 
 #include <algorithm>
+#include <array>
+#include <cstddef>
 #include <vector>
+
+#include "kamaletdinov_r_bitwise_int_seq/common/include/common.hpp"
 
 namespace kamaletdinov_r_bitwise_int_seq {
 
@@ -10,19 +14,19 @@ namespace {
 void CountingSortByDigit(std::vector<int> &arr, int exp) {
   int n = static_cast<int>(arr.size());
   std::vector<int> output(n);
-  int count[10] = {};
+  std::array<int, 10> count = {};
 
   for (int i = 0; i < n; i++) {
-    count[(arr[i] / exp) % 10]++;
+    count.at((arr[i] / exp) % 10)++;
   }
 
   for (int i = 1; i < 10; i++) {
-    count[i] += count[i - 1];
+    count.at(i) += count.at(i - 1);
   }
 
   for (int i = n - 1; i >= 0; i--) {
-    output[count[(arr[i] / exp) % 10] - 1] = arr[i];
-    count[(arr[i] / exp) % 10]--;
+    output[count.at((arr[i] / exp) % 10) - 1] = arr[i];
+    count.at((arr[i] / exp) % 10)--;
   }
 
   arr = output;
@@ -33,7 +37,7 @@ void RadixSortPositive(std::vector<int> &arr) {
     return;
   }
 
-  int max_val = *std::max_element(arr.begin(), arr.end());
+  int max_val = *std::ranges::max_element(arr);
 
   for (int exp = 1; max_val / exp > 0; exp *= 10) {
     CountingSortByDigit(arr, exp);
@@ -68,8 +72,8 @@ void BitwiseSort(std::vector<int> &arr) {
   for (int i = static_cast<int>(neg.size()) - 1; i >= 0; i--) {
     arr[idx++] = -neg[i];
   }
-  for (std::size_t i = 0; i < pos.size(); i++) {
-    arr[idx++] = pos[i];
+  for (int p : pos) {
+    arr[idx++] = p;
   }
 }
 
@@ -87,7 +91,7 @@ bool KamaletdinovRBitwiseIntSEQ::PreProcessingImpl() {
   int n = GetInput();
   data_.resize(n);
   for (int i = 0; i < n; i++) {
-    data_[i] = n / 2 - i;
+    data_[i] = (n / 2) - i;
   }
   return true;
 }
@@ -98,7 +102,7 @@ bool KamaletdinovRBitwiseIntSEQ::RunImpl() {
 }
 
 bool KamaletdinovRBitwiseIntSEQ::PostProcessingImpl() {
-  bool sorted = std::is_sorted(data_.begin(), data_.end());
+  bool sorted = std::ranges::is_sorted(data_);
   GetOutput() = sorted ? GetInput() : 0;
   return true;
 }

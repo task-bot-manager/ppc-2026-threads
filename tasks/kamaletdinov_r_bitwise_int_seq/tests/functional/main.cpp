@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <array>
 #include <cstddef>
+#include <memory>
 #include <string>
 #include <tuple>
 #include <vector>
@@ -40,6 +41,14 @@ class KamaletdinovRBitwiseIntFuncTests : public ppc::util::BaseRunFuncTests<InTy
 
 namespace {
 
+void RunTaskPipeline(const std::shared_ptr<KamaletdinovRBitwiseIntSEQ> &task, int expected) {
+  EXPECT_TRUE(task->Validation());
+  EXPECT_TRUE(task->PreProcessing());
+  EXPECT_TRUE(task->Run());
+  EXPECT_TRUE(task->PostProcessing());
+  EXPECT_EQ(task->GetOutput(), expected);
+}
+
 TEST_P(KamaletdinovRBitwiseIntFuncTests, MatmulFromPic) {
   ExecuteTest(GetParam());
 }
@@ -56,39 +65,19 @@ const auto kPerfTestName = KamaletdinovRBitwiseIntFuncTests::PrintFuncTestName<K
 INSTANTIATE_TEST_SUITE_P(PicMatrixTests, KamaletdinovRBitwiseIntFuncTests, kGtestValues, kPerfTestName);
 
 TEST(KamaletdinovRBitwiseIntEdge, PipelineEmptyInput) {
-  auto task = std::make_shared<KamaletdinovRBitwiseIntSEQ>(0);
-  EXPECT_TRUE(task->Validation());
-  EXPECT_TRUE(task->PreProcessing());
-  EXPECT_TRUE(task->Run());
-  EXPECT_TRUE(task->PostProcessing());
-  EXPECT_EQ(task->GetOutput(), 0);
+  RunTaskPipeline(std::make_shared<KamaletdinovRBitwiseIntSEQ>(0), 0);
 }
 
 TEST(KamaletdinovRBitwiseIntEdge, PipelineSingleElement) {
-  auto task = std::make_shared<KamaletdinovRBitwiseIntSEQ>(1);
-  EXPECT_TRUE(task->Validation());
-  EXPECT_TRUE(task->PreProcessing());
-  EXPECT_TRUE(task->Run());
-  EXPECT_TRUE(task->PostProcessing());
-  EXPECT_EQ(task->GetOutput(), 1);
+  RunTaskPipeline(std::make_shared<KamaletdinovRBitwiseIntSEQ>(1), 1);
 }
 
 TEST(KamaletdinovRBitwiseIntEdge, PipelineTwoElements) {
-  auto task = std::make_shared<KamaletdinovRBitwiseIntSEQ>(2);
-  EXPECT_TRUE(task->Validation());
-  EXPECT_TRUE(task->PreProcessing());
-  EXPECT_TRUE(task->Run());
-  EXPECT_TRUE(task->PostProcessing());
-  EXPECT_EQ(task->GetOutput(), 2);
+  RunTaskPipeline(std::make_shared<KamaletdinovRBitwiseIntSEQ>(2), 2);
 }
 
 TEST(KamaletdinovRBitwiseIntEdge, PipelineLargerInput) {
-  auto task = std::make_shared<KamaletdinovRBitwiseIntSEQ>(100);
-  EXPECT_TRUE(task->Validation());
-  EXPECT_TRUE(task->PreProcessing());
-  EXPECT_TRUE(task->Run());
-  EXPECT_TRUE(task->PostProcessing());
-  EXPECT_EQ(task->GetOutput(), 100);
+  RunTaskPipeline(std::make_shared<KamaletdinovRBitwiseIntSEQ>(100), 100);
 }
 
 TEST(KamaletdinovRBitwiseIntEdge, SortEmptyVector) {
@@ -100,14 +89,14 @@ TEST(KamaletdinovRBitwiseIntEdge, SortEmptyVector) {
 TEST(KamaletdinovRBitwiseIntEdge, SortSingleElement) {
   std::vector<int> data = {42};
   BitwiseSort(data);
-  ASSERT_EQ(data.size(), 1u);
+  ASSERT_EQ(data.size(), 1U);
   EXPECT_EQ(data[0], 42);
 }
 
 TEST(KamaletdinovRBitwiseIntEdge, SortAlreadySorted) {
   std::vector<int> data = {1, 2, 3, 4, 5};
   BitwiseSort(data);
-  EXPECT_TRUE(std::is_sorted(data.begin(), data.end()));
+  EXPECT_TRUE(std::ranges::is_sorted(data));
   std::vector<int> expected = {1, 2, 3, 4, 5};
   EXPECT_EQ(data, expected);
 }

@@ -7,7 +7,7 @@
 
 namespace kamaletdinov_r_bitwise_int_seq {
 
-void BitwiseSort(std::vector<int> &data);
+void BitwiseSort(std::vector<int> &arr);
 
 class KamaletdinovRBitwiseIntSEQ : public BaseTask {
  public:
