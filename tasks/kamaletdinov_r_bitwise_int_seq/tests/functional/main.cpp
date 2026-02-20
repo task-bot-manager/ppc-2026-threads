@@ -41,10 +41,14 @@ class KamaletdinovRBitwiseIntFuncTests : public ppc::util::BaseRunFuncTests<InTy
 
 namespace {
 
-void RunTaskPipeline(const std::shared_ptr<KamaletdinovRBitwiseIntSEQ> &task, int expected) {
+void RunPipelineSteps(const std::shared_ptr<KamaletdinovRBitwiseIntSEQ> &task) {
   EXPECT_TRUE(task->Validation());
   EXPECT_TRUE(task->PreProcessing());
   EXPECT_TRUE(task->Run());
+}
+
+void RunTaskPipeline(const std::shared_ptr<KamaletdinovRBitwiseIntSEQ> &task, int expected) {
+  RunPipelineSteps(task);
   EXPECT_TRUE(task->PostProcessing());
   EXPECT_EQ(task->GetOutput(), expected);
 }
