@@ -6,11 +6,9 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
-#include <numeric>
 #include <stdexcept>
 #include <string>
 #include <tuple>
-#include <utility>
 #include <vector>
 
 #include "util/include/func_test_util.hpp"
@@ -61,6 +59,10 @@ class VdovinAGaussBlockFuncTests : public ppc::util::BaseRunFuncTests<InType, Ou
 
 namespace {
 
+bool RunFullPipeline(VdovinAGaussBlockSEQ &task) {
+  return task.Validation() && task.PreProcessing() && task.Run() && task.PostProcessing();
+}
+
 TEST_P(VdovinAGaussBlockFuncTests, MatmulFromPic) {
   ExecuteTest(GetParam());
 }
@@ -78,54 +80,42 @@ INSTANTIATE_TEST_SUITE_P(PicMatrixTests, VdovinAGaussBlockFuncTests, kGtestValue
 
 TEST(VdovinAGaussBlockExtra, ConstantImageThree) {
   auto task = std::make_shared<VdovinAGaussBlockSEQ>(3);
-  ASSERT_TRUE(task->Validation());
-  ASSERT_TRUE(task->PreProcessing());
-  ASSERT_TRUE(task->Run());
-  ASSERT_TRUE(task->PostProcessing());
+  ASSERT_TRUE(RunFullPipeline(*task));
   EXPECT_EQ(task->GetOutput(), 100);
 }
 
 TEST(VdovinAGaussBlockExtra, ConstantImageTen) {
   auto task = std::make_shared<VdovinAGaussBlockSEQ>(10);
-  ASSERT_TRUE(task->Validation());
-  ASSERT_TRUE(task->PreProcessing());
-  ASSERT_TRUE(task->Run());
-  ASSERT_TRUE(task->PostProcessing());
+  ASSERT_TRUE(RunFullPipeline(*task));
   EXPECT_EQ(task->GetOutput(), 100);
 }
 
 TEST(VdovinAGaussBlockExtra, AllZerosImage) {
   auto task = std::make_shared<VdovinAGaussBlockSEQ>(4);
-  ASSERT_TRUE(task->Validation());
-  ASSERT_TRUE(task->PreProcessing());
-  std::fill(task->input_image_.begin(), task->input_image_.end(), static_cast<uint8_t>(0));
-  ASSERT_TRUE(task->Run());
-  ASSERT_TRUE(task->PostProcessing());
+  ASSERT_TRUE(task->Validation() && task->PreProcessing());
+  std::fill(task->InputImage().begin(), task->InputImage().end(), static_cast<uint8_t>(0));
+  ASSERT_TRUE(task->Run() && task->PostProcessing());
   EXPECT_EQ(task->GetOutput(), 0);
 }
 
 TEST(VdovinAGaussBlockExtra, AllMaxImage) {
   auto task = std::make_shared<VdovinAGaussBlockSEQ>(4);
-  ASSERT_TRUE(task->Validation());
-  ASSERT_TRUE(task->PreProcessing());
-  std::fill(task->input_image_.begin(), task->input_image_.end(), static_cast<uint8_t>(255));
-  ASSERT_TRUE(task->Run());
-  ASSERT_TRUE(task->PostProcessing());
+  ASSERT_TRUE(task->Validation() && task->PreProcessing());
+  std::fill(task->InputImage().begin(), task->InputImage().end(), static_cast<uint8_t>(255));
+  ASSERT_TRUE(task->Run() && task->PostProcessing());
   EXPECT_EQ(task->GetOutput(), 255);
 }
 
 TEST(VdovinAGaussBlockExtra, CenterBrightPixel) {
-  int n = 3;
-  auto task = std::make_shared<VdovinAGaussBlockSEQ>(n);
-  ASSERT_TRUE(task->Validation());
-  ASSERT_TRUE(task->PreProcessing());
-  std::fill(task->input_image_.begin(), task->input_image_.end(), static_cast<uint8_t>(0));
-  int center_idx = (1 * n + 1) * 3;
-  task->input_image_[center_idx] = 240;
-  task->input_image_[center_idx + 1] = 240;
-  task->input_image_[center_idx + 2] = 240;
-  ASSERT_TRUE(task->Run());
-  ASSERT_TRUE(task->PostProcessing());
+  int side = 3;
+  auto task = std::make_shared<VdovinAGaussBlockSEQ>(side);
+  ASSERT_TRUE(task->Validation() && task->PreProcessing());
+  std::fill(task->InputImage().begin(), task->InputImage().end(), static_cast<uint8_t>(0));
+  int center_idx = (1 * side + 1) * 3;
+  task->InputImage()[center_idx] = 240;
+  task->InputImage()[center_idx + 1] = 240;
+  task->InputImage()[center_idx + 2] = 240;
+  ASSERT_TRUE(task->Run() && task->PostProcessing());
   EXPECT_EQ(task->GetOutput(), 26);
 }
 
@@ -155,19 +145,13 @@ TEST(VdovinAGaussBlockExtra, ValidationFailsForNegative) {
 
 TEST(VdovinAGaussBlockExtra, EvenSizedImage) {
   auto task = std::make_shared<VdovinAGaussBlockSEQ>(6);
-  ASSERT_TRUE(task->Validation());
-  ASSERT_TRUE(task->PreProcessing());
-  ASSERT_TRUE(task->Run());
-  ASSERT_TRUE(task->PostProcessing());
+  ASSERT_TRUE(RunFullPipeline(*task));
   EXPECT_EQ(task->GetOutput(), 100);
 }
 
 TEST(VdovinAGaussBlockExtra, LargeImage) {
   auto task = std::make_shared<VdovinAGaussBlockSEQ>(50);
-  ASSERT_TRUE(task->Validation());
-  ASSERT_TRUE(task->PreProcessing());
-  ASSERT_TRUE(task->Run());
-  ASSERT_TRUE(task->PostProcessing());
+  ASSERT_TRUE(RunFullPipeline(*task));
   EXPECT_EQ(task->GetOutput(), 100);
 }
 
@@ -184,33 +168,28 @@ TEST(VdovinAGaussBlockExtra, ProcessRealImage) {
 
   int side = std::max({width, height, 3});
   std::vector<uint8_t> padded(side * side * channels, 0);
-  for (int y = 0; y < height; y++) {
-    for (int x = 0; x < width; x++) {
-      for (int c = 0; c < channels; c++) {
-        padded[(y * side + x) * channels + c] = data[(y * width + x) * channels + c];
+  for (int py = 0; py < height; py++) {
+    for (int px = 0; px < width; px++) {
+      for (int ch = 0; ch < channels; ch++) {
+        padded[((py * side) + px) * channels + ch] = data[((py * width) + px) * channels + ch];
       }
     }
   }
   stbi_image_free(data);
 
   auto task = std::make_shared<VdovinAGaussBlockSEQ>(side);
-  ASSERT_TRUE(task->Validation());
-  ASSERT_TRUE(task->PreProcessing());
-  task->input_image_ = padded;
-  ASSERT_TRUE(task->Run());
-  ASSERT_TRUE(task->PostProcessing());
+  ASSERT_TRUE(task->Validation() && task->PreProcessing());
+  task->InputImage() = padded;
+  ASSERT_TRUE(task->Run() && task->PostProcessing());
   EXPECT_GE(task->GetOutput(), 0);
   EXPECT_LE(task->GetOutput(), 255);
 }
 
 TEST(VdovinAGaussBlockExtra, OutputImageSize) {
-  int n = 8;
-  auto task = std::make_shared<VdovinAGaussBlockSEQ>(n);
-  ASSERT_TRUE(task->Validation());
-  ASSERT_TRUE(task->PreProcessing());
-  ASSERT_TRUE(task->Run());
-  ASSERT_TRUE(task->PostProcessing());
-  EXPECT_EQ(static_cast<int>(task->output_image_.size()), n * n * 3);
+  int side = 8;
+  auto task = std::make_shared<VdovinAGaussBlockSEQ>(side);
+  ASSERT_TRUE(RunFullPipeline(*task));
+  EXPECT_EQ(static_cast<int>(task->OutputImage().size()), side * side * 3);
 }
 
 }  // namespace

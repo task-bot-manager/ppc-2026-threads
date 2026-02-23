@@ -15,16 +15,25 @@ class VdovinAGaussBlockSEQ : public BaseTask {
   }
   explicit VdovinAGaussBlockSEQ(const InType &in);
 
-  int width_ = 0;
-  int height_ = 0;
-  std::vector<uint8_t> input_image_;
-  std::vector<uint8_t> output_image_;
+  std::vector<uint8_t> &InputImage() {
+    return input_image_;
+  }
+  std::vector<uint8_t> &OutputImage() {
+    return output_image_;
+  }
 
  private:
   bool ValidationImpl() override;
   bool PreProcessingImpl() override;
   bool RunImpl() override;
   bool PostProcessingImpl() override;
+
+  void ApplyGaussianToPixel(int py, int px);
+
+  int width_ = 0;
+  int height_ = 0;
+  std::vector<uint8_t> input_image_;
+  std::vector<uint8_t> output_image_;
 };
 
 }  // namespace vdovin_a_gauss_block_seq
