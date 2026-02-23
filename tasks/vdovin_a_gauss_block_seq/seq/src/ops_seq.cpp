@@ -47,10 +47,10 @@ void VdovinAGaussBlockSEQ::ApplyGaussianToPixel(int py, int px) {
       for (int kx = -1; kx <= 1; kx++) {
         int ny = std::clamp(py + ky, 0, height_ - 1);
         int nx = std::clamp(px + kx, 0, width_ - 1);
-        sum += input_image_[((ny * width_) + nx) * kChannels + ch] * kKernel.at(ky + 1).at(kx + 1);
+        sum += input_image_[(((ny * width_) + nx) * kChannels) + ch] * kKernel.at(ky + 1).at(kx + 1);
       }
     }
-    output_image_[((py * width_) + px) * kChannels + ch] = static_cast<uint8_t>(std::clamp(sum / kKernelSum, 0, 255));
+    output_image_[(((py * width_) + px) * kChannels) + ch] = static_cast<uint8_t>(std::clamp(sum / kKernelSum, 0, 255));
   }
 }
 
@@ -82,6 +82,9 @@ bool VdovinAGaussBlockSEQ::PostProcessingImpl() {
     return false;
   }
   auto total = static_cast<int64_t>(output_image_.size());
+  if (total == 0) {
+    return false;
+  }
   int64_t sum = 0;
   for (int64_t idx = 0; idx < total; idx++) {
     sum += output_image_[idx];

@@ -9,6 +9,7 @@
 #include <stdexcept>
 #include <string>
 #include <tuple>
+#include <utility>
 #include <vector>
 
 #include "util/include/func_test_util.hpp"
@@ -61,6 +62,30 @@ namespace {
 
 bool RunFullPipeline(VdovinAGaussBlockSEQ &task) {
   return task.Validation() && task.PreProcessing() && task.Run() && task.PostProcessing();
+}
+
+std::pair<std::vector<uint8_t>, int> LoadAndPadPicPpm() {
+  int width = 0;
+  int height = 0;
+  int channels = 0;
+  std::string abs_path = ppc::util::GetAbsoluteTaskPath(std::string(PPC_ID_vdovin_a_gauss_block_seq), "pic.ppm");
+  unsigned char *data = stbi_load(abs_path.c_str(), &width, &height, &channels, STBI_rgb);
+  if (data == nullptr) {
+    return {{}, 0};
+  }
+  channels = STBI_rgb;
+  int side = std::max({width, height, 3});
+  std::vector<uint8_t> padded(
+      static_cast<std::size_t>(side) * static_cast<std::size_t>(side) * static_cast<std::size_t>(channels), 0);
+  for (int py = 0; py < height; py++) {
+    for (int px = 0; px < width; px++) {
+      for (int ch = 0; ch < channels; ch++) {
+        padded[(((py * side) + px) * channels) + ch] = data[(((py * width) + px) * channels) + ch];
+      }
+    }
+  }
+  stbi_image_free(data);
+  return {padded, side};
 }
 
 TEST_P(VdovinAGaussBlockFuncTests, MatmulFromPic) {
@@ -156,27 +181,9 @@ TEST(VdovinAGaussBlockExtra, LargeImage) {
 }
 
 TEST(VdovinAGaussBlockExtra, ProcessRealImage) {
-  int width = 0;
-  int height = 0;
-  int channels = 0;
-  std::string abs_path = ppc::util::GetAbsoluteTaskPath(std::string(PPC_ID_vdovin_a_gauss_block_seq), "pic.ppm");
-  auto *data = stbi_load(abs_path.c_str(), &width, &height, &channels, STBI_rgb);
-  ASSERT_NE(data, nullptr);
-  channels = STBI_rgb;
-  ASSERT_GT(width, 0);
-  ASSERT_GT(height, 0);
-
-  int side = std::max({width, height, 3});
-  std::vector<uint8_t> padded(side * side * channels, 0);
-  for (int py = 0; py < height; py++) {
-    for (int px = 0; px < width; px++) {
-      for (int ch = 0; ch < channels; ch++) {
-        padded[((py * side) + px) * channels + ch] = data[((py * width) + px) * channels + ch];
-      }
-    }
-  }
-  stbi_image_free(data);
-
+  auto [padded, side] = LoadAndPadPicPpm();
+  ASSERT_FALSE(padded.empty());
+  ASSERT_GE(side, 3);
   auto task = std::make_shared<VdovinAGaussBlockSEQ>(side);
   ASSERT_TRUE(task->Validation() && task->PreProcessing());
   task->InputImage() = padded;
