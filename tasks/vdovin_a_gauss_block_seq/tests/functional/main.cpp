@@ -88,6 +88,23 @@ std::pair<std::vector<uint8_t>, int> LoadAndPadPicPpm() {
   return {padded, side};
 }
 
+bool ProcessRealImageSucceedsAndOutputInRange() {
+  auto [padded, side] = LoadAndPadPicPpm();
+  if (padded.empty() || side < 3) {
+    return false;
+  }
+  auto task = std::make_shared<VdovinAGaussBlockSEQ>(side);
+  if (!task->Validation() || !task->PreProcessing()) {
+    return false;
+  }
+  task->InputImage() = padded;
+  if (!task->Run() || !task->PostProcessing()) {
+    return false;
+  }
+  int out = task->GetOutput();
+  return out >= 0 && out <= 255;
+}
+
 TEST_P(VdovinAGaussBlockFuncTests, MatmulFromPic) {
   ExecuteTest(GetParam());
 }
@@ -181,15 +198,7 @@ TEST(VdovinAGaussBlockExtra, LargeImage) {
 }
 
 TEST(VdovinAGaussBlockExtra, ProcessRealImage) {
-  auto [padded, side] = LoadAndPadPicPpm();
-  ASSERT_FALSE(padded.empty());
-  ASSERT_GE(side, 3);
-  auto task = std::make_shared<VdovinAGaussBlockSEQ>(side);
-  ASSERT_TRUE(task->Validation() && task->PreProcessing());
-  task->InputImage() = padded;
-  ASSERT_TRUE(task->Run() && task->PostProcessing());
-  EXPECT_GE(task->GetOutput(), 0);
-  EXPECT_LE(task->GetOutput(), 255);
+  ASSERT_TRUE(ProcessRealImageSucceedsAndOutputInRange());
 }
 
 TEST(VdovinAGaussBlockExtra, OutputImageSize) {
