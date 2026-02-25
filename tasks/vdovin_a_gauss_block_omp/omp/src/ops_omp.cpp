@@ -37,10 +37,10 @@ void VdovinAGaussBlockOMP::ApplyGaussianToPixel(int py, int px) {
       for (int kx = -1; kx <= 1; kx++) {
         int ny = std::clamp(py + ky, 0, height_ - 1);
         int nx = std::clamp(px + kx, 0, width_ - 1);
-        sum += k_kernel.at(ky + 1).at(kx + 1) * input_image_[((ny * width_) + nx) * 3 + ch];
+        sum += k_kernel.at(ky + 1).at(kx + 1) * input_image_[(((ny * width_) + nx) * 3) + ch];
       }
     }
-    output_image_[((py * width_) + px) * 3 + ch] = static_cast<uint8_t>(sum / 16);
+    output_image_[(((py * width_) + px) * 3) + ch] = static_cast<uint8_t>(sum / 16);
   }
 }
 
