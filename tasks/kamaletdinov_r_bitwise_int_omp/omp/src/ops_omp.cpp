@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <array>
 #include <cstddef>
+#include <utility>
 #include <vector>
 
 #include "kamaletdinov_r_bitwise_int_omp/common/include/common.hpp"
@@ -39,7 +40,7 @@ void RadixSortPositive(std::vector<int> &data) {
     return;
   }
 
-  int max_value = *std::max_element(data.begin(), data.end());
+  int max_value = *std::ranges::max_element(data);
 
   for (int exp = 1; max_value / exp > 0; exp *= 10) {
     CountingSortByDigit(data, exp);
