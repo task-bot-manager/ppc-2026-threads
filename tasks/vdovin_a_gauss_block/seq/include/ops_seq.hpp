@@ -4,16 +4,16 @@
 #include <vector>
 
 #include "task/include/task.hpp"
-#include "vdovin_a_gauss_block_omp/common/include/common.hpp"
+#include "vdovin_a_gauss_block/common/include/common.hpp"
 
-namespace vdovin_a_gauss_block_omp {
+namespace vdovin_a_gauss_block {
 
-class VdovinAGaussBlockOMP : public BaseTask {
+class VdovinAGaussBlockSEQ : public BaseTask {
  public:
   static constexpr ppc::task::TypeOfTask GetStaticTypeOfTask() {
-    return ppc::task::TypeOfTask::kOMP;
+    return ppc::task::TypeOfTask::kSEQ;
   }
-  explicit VdovinAGaussBlockOMP(const InType &in);
+  explicit VdovinAGaussBlockSEQ(const InType &in);
 
   std::vector<uint8_t> &InputImage() {
     return input_image_;
@@ -36,4 +36,4 @@ class VdovinAGaussBlockOMP : public BaseTask {
   std::vector<uint8_t> output_image_;
 };
 
-}  // namespace vdovin_a_gauss_block_omp
+}  // namespace vdovin_a_gauss_block
