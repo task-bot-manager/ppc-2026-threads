@@ -5,12 +5,13 @@
 #include <string>
 #include <tuple>
 
-#include "karpich_i_bitwise_batcher_seq/common/include/common.hpp"
-#include "karpich_i_bitwise_batcher_seq/seq/include/ops_seq.hpp"
+#include "karpich_i_bitwise_batcher/common/include/common.hpp"
+#include "karpich_i_bitwise_batcher/seq/include/ops_seq.hpp"
+#include "karpich_i_bitwise_batcher/tbb/include/ops_tbb.hpp"
 #include "util/include/func_test_util.hpp"
 #include "util/include/util.hpp"
 
-namespace karpich_i_bitwise_batcher_seq {
+namespace karpich_i_bitwise_batcher {
 
 class KarpichIBitwiseBatcherFuncTestsThreads : public ppc::util::BaseRunFuncTests<InType, OutType, TestType> {
  public:
@@ -50,7 +51,8 @@ const std::array<TestType, 12> kTestParam = {
 };
 
 const auto kTestTasksList = std::tuple_cat(
-    ppc::util::AddFuncTask<KarpichIBitwiseBatcherSEQ, InType>(kTestParam, PPC_SETTINGS_karpich_i_bitwise_batcher_seq));
+    ppc::util::AddFuncTask<KarpichIBitwiseBatcherSEQ, InType>(kTestParam, PPC_SETTINGS_karpich_i_bitwise_batcher),
+    ppc::util::AddFuncTask<KarpichIBitwiseBatcherTBB, InType>(kTestParam, PPC_SETTINGS_karpich_i_bitwise_batcher));
 
 const auto kGtestValues = ppc::util::ExpandToValues(kTestTasksList);
 
@@ -61,4 +63,4 @@ INSTANTIATE_TEST_SUITE_P(PicMatrixTests, KarpichIBitwiseBatcherFuncTestsThreads,
 
 }  // namespace
 
-}  // namespace karpich_i_bitwise_batcher_seq
+}  // namespace karpich_i_bitwise_batcher

@@ -2,17 +2,17 @@
 
 #include <vector>
 
-#include "karpich_i_bitwise_batcher_seq/common/include/common.hpp"
+#include "karpich_i_bitwise_batcher/common/include/common.hpp"
 #include "task/include/task.hpp"
 
-namespace karpich_i_bitwise_batcher_seq {
+namespace karpich_i_bitwise_batcher {
 
-class KarpichIBitwiseBatcherSEQ : public BaseTask {
+class KarpichIBitwiseBatcherTBB : public BaseTask {
  public:
   static constexpr ppc::task::TypeOfTask GetStaticTypeOfTask() {
-    return ppc::task::TypeOfTask::kSEQ;
+    return ppc::task::TypeOfTask::kTBB;
   }
-  explicit KarpichIBitwiseBatcherSEQ(const InType &in);
+  explicit KarpichIBitwiseBatcherTBB(const InType &in);
 
  private:
   bool ValidationImpl() override;
@@ -23,4 +23,4 @@ class KarpichIBitwiseBatcherSEQ : public BaseTask {
   std::vector<int> data_;
 };
 
-}  // namespace karpich_i_bitwise_batcher_seq
+}  // namespace karpich_i_bitwise_batcher

@@ -1,10 +1,11 @@
 #include <gtest/gtest.h>
 
-#include "karpich_i_bitwise_batcher_seq/common/include/common.hpp"
-#include "karpich_i_bitwise_batcher_seq/seq/include/ops_seq.hpp"
+#include "karpich_i_bitwise_batcher/common/include/common.hpp"
+#include "karpich_i_bitwise_batcher/seq/include/ops_seq.hpp"
+#include "karpich_i_bitwise_batcher/tbb/include/ops_tbb.hpp"
 #include "util/include/perf_test_util.hpp"
 
-namespace karpich_i_bitwise_batcher_seq {
+namespace karpich_i_bitwise_batcher {
 
 class KarpichIBitwiseBatcherPerfTestsThreads : public ppc::util::BaseRunPerfTests<InType, OutType> {
   const int kCount_ = 1500000;
@@ -29,8 +30,8 @@ TEST_P(KarpichIBitwiseBatcherPerfTestsThreads, RunPerfModes) {
 
 namespace {
 
-const auto kAllPerfTasks =
-    ppc::util::MakeAllPerfTasks<InType, KarpichIBitwiseBatcherSEQ>(PPC_SETTINGS_karpich_i_bitwise_batcher_seq);
+const auto kAllPerfTasks = ppc::util::MakeAllPerfTasks<InType, KarpichIBitwiseBatcherTBB, KarpichIBitwiseBatcherSEQ>(
+    PPC_SETTINGS_karpich_i_bitwise_batcher);
 
 const auto kGtestValues = ppc::util::TupleToGTestValues(kAllPerfTasks);
 
@@ -40,4 +41,4 @@ INSTANTIATE_TEST_SUITE_P(RunModeTests, KarpichIBitwiseBatcherPerfTestsThreads, k
 
 }  // namespace
 
-}  // namespace karpich_i_bitwise_batcher_seq
+}  // namespace karpich_i_bitwise_batcher

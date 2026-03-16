@@ -1,13 +1,15 @@
-#include "karpich_i_bitwise_batcher_seq/seq/include/ops_seq.hpp"
+#include "karpich_i_bitwise_batcher/tbb/include/ops_tbb.hpp"
 
 #include <algorithm>
 #include <random>
 #include <utility>
 #include <vector>
 
-#include "karpich_i_bitwise_batcher_seq/common/include/common.hpp"
+#include "karpich_i_bitwise_batcher/common/include/common.hpp"
+#include "oneapi/tbb/parallel_for.h"
+#include "oneapi/tbb/parallel_invoke.h"
 
-namespace karpich_i_bitwise_batcher_seq {
+namespace karpich_i_bitwise_batcher {
 
 namespace {
 
@@ -101,34 +103,33 @@ std::vector<std::vector<std::pair<int, int>>> BuildMergeNetwork(int lo, int hi) 
   return levels;
 }
 
-void ApplyComparatorNetwork(std::vector<int> &arr, const std::vector<std::vector<std::pair<int, int>>> &levels) {
+void BatcherMergeParallel(std::vector<int> &arr, int lo, int hi) {
+  auto levels = BuildMergeNetwork(lo, hi);
   for (int lvl = static_cast<int>(levels.size()) - 1; lvl >= 0; lvl--) {
-    for (const auto &[a, b] : levels[lvl]) {
+    const auto &level = levels[lvl];
+    int level_size = static_cast<int>(level.size());
+    tbb::parallel_for(0, level_size, [&arr, &level](int idx) {
+      auto [a, b] = level[idx];
       if (arr[a] > arr[b]) {
         std::swap(arr[a], arr[b]);
       }
-    }
+    });
   }
-}
-
-void BatcherMerge(std::vector<int> &arr, int lo, int hi) {
-  auto levels = BuildMergeNetwork(lo, hi);
-  ApplyComparatorNetwork(arr, levels);
 }
 
 }  // namespace
 
-KarpichIBitwiseBatcherSEQ::KarpichIBitwiseBatcherSEQ(const InType &in) {
+KarpichIBitwiseBatcherTBB::KarpichIBitwiseBatcherTBB(const InType &in) {
   SetTypeOfTask(GetStaticTypeOfTask());
   GetInput() = in;
   GetOutput() = 0;
 }
 
-bool KarpichIBitwiseBatcherSEQ::ValidationImpl() {
+bool KarpichIBitwiseBatcherTBB::ValidationImpl() {
   return GetInput() > 0;
 }
 
-bool KarpichIBitwiseBatcherSEQ::PreProcessingImpl() {
+bool KarpichIBitwiseBatcherTBB::PreProcessingImpl() {
   int n = GetInput();
   data_.resize(n);
   std::mt19937 gen(static_cast<unsigned int>(n));
@@ -139,7 +140,7 @@ bool KarpichIBitwiseBatcherSEQ::PreProcessingImpl() {
   return true;
 }
 
-bool KarpichIBitwiseBatcherSEQ::RunImpl() {
+bool KarpichIBitwiseBatcherTBB::RunImpl() {
   int n = static_cast<int>(data_.size());
   if (n <= 1) {
     return true;
@@ -157,19 +158,18 @@ bool KarpichIBitwiseBatcherSEQ::RunImpl() {
   std::vector<int> left(data_.begin(), data_.begin() + half);
   std::vector<int> right(data_.begin() + half, data_.end());
 
-  RadixSort(left);
-  RadixSort(right);
+  tbb::parallel_invoke([&left]() { RadixSort(left); }, [&right]() { RadixSort(right); });
 
   std::ranges::copy(left, data_.begin());
   std::ranges::copy(right, data_.begin() + half);
 
-  BatcherMerge(data_, 0, padded - 1);
+  BatcherMergeParallel(data_, 0, padded - 1);
 
   data_.resize(n);
   return true;
 }
 
-bool KarpichIBitwiseBatcherSEQ::PostProcessingImpl() {
+bool KarpichIBitwiseBatcherTBB::PostProcessingImpl() {
   for (int i = 1; std::cmp_less(i, data_.size()); i++) {
     if (data_[i] < data_[i - 1]) {
       return false;
@@ -179,4 +179,4 @@ bool KarpichIBitwiseBatcherSEQ::PostProcessingImpl() {
   return true;
 }
 
-}  // namespace karpich_i_bitwise_batcher_seq
+}  // namespace karpich_i_bitwise_batcher
