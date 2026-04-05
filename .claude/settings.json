@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(./ppc_perf_tests.exe --gtest_filter=\"*vdovin_a_gauss_block*\")",
+      "Bash(./ppc_func_tests.exe --gtest_filter=\"*vdovin_a_gauss_block*\")",
+      "Bash(./ppc_perf_tests.exe '--gtest_filter=*vdovin_a_gauss_block_tbb*')"
+    ]
+  }
+}
