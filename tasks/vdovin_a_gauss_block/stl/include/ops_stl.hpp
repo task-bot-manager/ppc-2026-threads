@@ -29,6 +29,7 @@ class VdovinAGaussBlockSTL : public BaseTask {
   bool PostProcessingImpl() override;
 
   void ApplyGaussianToPixel(int py, int px);
+  void ProcessRows(int row_start, int row_end);
 
   int width_ = 0;
   int height_ = 0;

@@ -56,47 +56,30 @@ void VdovinAGaussBlockSTL::ApplyGaussianToPixel(int py, int px) {
   }
 }
 
+void VdovinAGaussBlockSTL::ProcessRows(int row_start, int row_end) {
+  for (int py = row_start; py < row_end; py++) {
+    for (int px = 0; px < width_; px++) {
+      ApplyGaussianToPixel(py, px);
+    }
+  }
+}
+
 bool VdovinAGaussBlockSTL::RunImpl() {
   if (input_image_.empty() || output_image_.empty()) {
     return false;
   }
 
   int num_threads = ppc::util::GetNumThreads();
-  int block_height = std::max(1, height_ / 4);
-  int block_width = std::max(1, width_ / 4);
+  int rows_per_thread = height_ / num_threads;
+  int remainder = height_ % num_threads;
 
-  std::vector<std::pair<int, int>> blocks;
-  for (int by = 0; by < height_; by += block_height) {
-    for (int bx = 0; bx < width_; bx += block_width) {
-      blocks.emplace_back(by, bx);
-    }
-  }
-
-  int total_blocks = static_cast<int>(blocks.size());
   std::vector<std::thread> threads;
   threads.reserve(num_threads);
 
-  auto worker = [&](int start, int end) {
-    for (int b = start; b < end; b++) {
-      int by = blocks[b].first;
-      int bx = blocks[b].second;
-      int y_end = std::min(by + block_height, height_);
-      int x_end = std::min(bx + block_width, width_);
-      for (int py = by; py < y_end; py++) {
-        for (int px = bx; px < x_end; px++) {
-          ApplyGaussianToPixel(py, px);
-        }
-      }
-    }
-  };
-
-  int blocks_per_thread = total_blocks / num_threads;
-  int remainder = total_blocks % num_threads;
   int offset = 0;
-
-  for (int t = 0; t < num_threads; t++) {
-    int count = blocks_per_thread + (t < remainder ? 1 : 0);
-    threads.emplace_back(worker, offset, offset + count);
+  for (int ti = 0; ti < num_threads; ti++) {
+    int count = rows_per_thread + (ti < remainder ? 1 : 0);
+    threads.emplace_back(&VdovinAGaussBlockSTL::ProcessRows, this, offset, offset + count);
     offset += count;
   }
 
