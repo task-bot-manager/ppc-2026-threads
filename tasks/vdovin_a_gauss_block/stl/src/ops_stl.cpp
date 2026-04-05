@@ -24,7 +24,9 @@ VdovinAGaussBlockSTL::VdovinAGaussBlockSTL(const InType &in) {
   GetOutput() = 0;
 }
 
-bool VdovinAGaussBlockSTL::ValidationImpl() { return GetInput() >= 3; }
+bool VdovinAGaussBlockSTL::ValidationImpl() {
+  return GetInput() >= 3;
+}
 
 bool VdovinAGaussBlockSTL::PreProcessingImpl() {
   width_ = GetInput();
