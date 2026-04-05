@@ -5,7 +5,9 @@
       "Bash(./ppc_func_tests.exe --gtest_filter=\"*vdovin_a_gauss_block*\")",
       "Bash(./ppc_perf_tests.exe '--gtest_filter=*vdovin_a_gauss_block_tbb*')",
       "Bash(cmake -S . -B build)",
-      "Bash(./ppc_perf_tests.exe '--gtest_filter=*vdovin_a_gauss_block_stl*')"
+      "Bash(./ppc_perf_tests.exe '--gtest_filter=*vdovin_a_gauss_block_stl*')",
+      "Bash(mpiexec -n 2 ./ppc_func_tests.exe --gtest_filter=\"*vdovin_a_gauss_block*all*\")",
+      "Bash(mpiexec -n 2 ./ppc_perf_tests.exe --gtest_filter=\"*vdovin_a_gauss_block_all*\")"
     ]
   }
 }
