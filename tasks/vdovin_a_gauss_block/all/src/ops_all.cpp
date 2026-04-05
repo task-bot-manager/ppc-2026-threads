@@ -98,7 +98,7 @@ bool VdovinAGaussBlockALL::RunImpl() {
     int py = row_start + ry;
     for (int px = 0; px < width_; px++) {
       for (int ch = 0; ch < kChannels; ch++) {
-        local_output[((ry * width_) + px) * kChannels + ch] =
+        local_output[(((ry * width_) + px) * kChannels) + ch] =
             ComputePixelChannel(input_image_, width_, height_, py, px, ch);
       }
     }
